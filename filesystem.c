@@ -46,9 +46,10 @@ struct llfs_filesystem* make_filesystem(char* name){
 	rllfs->boot_sector->free_blocks = calloc(SECTOR_SIZE*FREE_BLOCK_TABLE_SECTOR_LENGTH,sizeof(char));
 
 	//allocate and set up empty root file directory
+	rllfs->boot_sector->root = malloc(sizeof(struct directory_block));
+
 	struct directory_block* root = rllfs->boot_sector->root;
-	root = malloc(sizeof(struct directory_block));
-	root->name_of_directory = "root";
+	root->name_of_directory = strdup("root");
 	root->total_subdirectory_num = 0;
 	root->total_file_num = 0;
 	root->is_extended = 0;
@@ -59,6 +60,7 @@ struct llfs_filesystem* make_filesystem(char* name){
 
 int free_filesystem(struct llfs_filesystem* fs){
 	free(fs->boot_sector->disk_name);
+	free(fs->boot_sector->root->name_of_directory);
 	free(fs->boot_sector->root);
 	free(fs->boot_sector->free_blocks);
 	free(fs->boot_sector);
@@ -67,15 +69,99 @@ int free_filesystem(struct llfs_filesystem* fs){
 }
 
 int add_file_to_filesystem(struct llfs_filesystem* fs, char* path, char* name){
-	//first break up the path into a blocks of text;
+
+	struct directory_block* dest = path_to_directory_block(fs,path);
+
+	printf("%s\n", dest->name_of_directory);
+ 
+	return 0;
+}
+
+struct directory_block* path_to_directory_block(struct llfs_filesystem* fs,char* path){
+	char** path_names = path_to_string_arr(path); //break up path names
+
+	struct directory_block* finder = fs->boot_sector->root;
+	int curr_path_level=0;
+	while(1){ //while doesn't match up
+		if(!strcmp(path_names[curr_path_level],finder->name_of_directory)){
+			//we're in the right directory;
+			//free path names and return directory
+
+			int i;
+			for(i=0;path_names[i]!=0;i++){
+				free(path_names[i]);;
+			}
+			free(path_names);
+
+			return finder;	
+
+		}else if(finder->total_subdirectory_num != 0){ //if directory has subdirectories
+			int i;
+			for(i=0;i<finder->total_subdirectory_num;i++){
+
+				//if i >= 10 
+				//check if directory is extended
+				//if isn't break and exit
+				//if it is, load extended directory block i/10 (if it exists), and subdirectory i%10
+
+				if(i>=10){
+					struct directory_block* ext_block = finder; //extended block
+					int y;
+					for(y=0;y<(i/10);y++){ //navigate to extended directory block with our subdir
+						if(ext_block->is_extended){ //can we actually extend?
+							ext_block = ext_block->next;
+						}else{
+							//no extended block here, free path names and exit
+							int i;
+							for(i=0;path_names[i]!=0;i++){
+								free(path_names[i]);;
+							}
+							free(path_names);		
+
+							return (struct directory_block*) 0;						
+						}
+					}
+
+					if(!strcmp(path_names[curr_path_level+1],ext_block->dir_pointers_in_mem[i%10]->name_of_directory)){
+						curr_path_level++;
+						finder = ext_block->dir_pointers_in_mem[i%10]; //if path names match up go down a level
+						break;
+					}
+				}else{
+					if(!strcmp(path_names[curr_path_level+1],finder->dir_pointers_in_mem[i]->name_of_directory)){
+						//matched! go down one
+						curr_path_level++;
+						finder = finder->dir_pointers_in_mem[i]; //if path names match up go down a level
+						break;
+					}
+				}
+			}
+		}else{
+			//no more subdirectories to check, path does not exist
+			//free path names and exit 
+
+			int i;
+			for(i=0;path_names[i]!=0;i++){
+				free(path_names[i]);;
+			}
+			free(path_names);	
+
+			return (struct directory_block*)0;
+		}
+	}
+	//free path_names at the end
+	
+}
+
+char** path_to_string_arr(char* path){
 	char** path_names = malloc(sizeof(char*)*2);
 	int path_num=0;
 
 	//parser to break up \blah\blah\ format into array of strings
 	int i=0;
 	while(path[i]!='\0'){
-		if(path[i] != '\\'){ //mismatch, return -1
-			return -1;
+		if(path[i] != '\\'){ //mismatch, return 0
+			return (char**)0;
 		}
 		i++;
 		if(path[i]!='\0'){
@@ -84,7 +170,7 @@ int add_file_to_filesystem(struct llfs_filesystem* fs, char* path, char* name){
 			for(i;path[i]!='\\';i++){
 				if(path[i]=='\0'){
 					free(temps);
-					break;
+					return (char**)0;
 					//return -2; //oops
 				}
 				temps[tempi]=path[i];
@@ -95,40 +181,9 @@ int add_file_to_filesystem(struct llfs_filesystem* fs, char* path, char* name){
 			path_names[path_num]=strdup(temps);
 			path_names = realloc(path_names,sizeof(char*)*(path_num+2));
 			path_num++;
+			path_names[path_num] = '\0';
 		}
 	}
 
-	struct directory_block* finder = fs->boot_sector->root;
-	int curr_path_level=0;
-	while(1){ //while doesn't match up
-		if(!strcmp(path_names[curr_path_level],finder->name_of_directory)){
-			//we're in the right directory;
-			break;
-		}else if(finder->total_subdirectory_num != 0){ //if directory has subdirectories
-			int i;
-			for(i=0;i<total_subdirectory_num;i++){
-
-				if(!strcmp(path_names[curr_path_level+1],finder->dir_pointers_in_mem[i]->name_of_directory)){
-					//matched! go down one
-					curr_path_level++;
-					break;
-				}
-
-				//if i >= 10 
-				//check if directory is extended
-				//if isn't break and exit
-				//if it is, load extended directory block i/10 (if it exists), and subdirectory i%10
-			}
-		}else{
-			//no more subdirectories to check, path does not exist
-		}
-	}
-
-	//free path_names at the end
-	for(i=0;i<path_num;i++){
-		free(path_names[i]);
-	}
-	free(path_names);
- 
-	return 0;
+	return path_names;
 }

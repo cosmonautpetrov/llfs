@@ -12,6 +12,7 @@
 #define MAX_FILES_PER_BLOCK 10
 #define MAX_DIRECTORIES_PER_BLOCK 10
 
+#define DEBUG() printf("DEBUG: %i\n", __LINE__)
 
 struct directory_block;
 struct file_block;
@@ -90,5 +91,9 @@ int flip_block_bit(struct llfs_filesystem* fs, unsigned int num); //flips block 
 	5. load filesystem into memory
 
 */
+
+//helper functions to clean up functions
+char** path_to_string_arr(char* src); //converts a pathname string to a string array
+struct directory_block* path_to_directory_block(struct llfs_filesystem* fs,char* path); //returns a directory block from path
 
 #endif
