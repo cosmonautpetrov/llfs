@@ -3,6 +3,7 @@
 
 //linked list file system 
 #define BLOCK_SIZE 128
+#define BLOCKS_ON_DISK 8 * 512 * 3
 
 #include "stdio.h"
 #include "floppy.h"
@@ -79,7 +80,7 @@ int dump_filesystem(struct llfs_filesystem* fs); //dumps a filesystem ls style
 int add_file_to_filesystem(struct llfs_filesystem* fs, char* path, char* name); //adds file name to filesystem fs in path
 int mkdr_filesystem(struct llfs_filesystem, char* path, char* name); //makes a directory in path with name name 
 
-unsigned int first_free_block(struct llfs_filesystem* fs); //returns num of first free  block bit
+int first_free_block(struct llfs_filesystem* fs); //returns num of first free  block bit
 
 int is_block_free(struct llfs_filesystem* fs, unsigned int num); //checks if block bit is free
 int flip_block_bit(struct llfs_filesystem* fs, unsigned int num); //flips block bit

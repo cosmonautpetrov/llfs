@@ -1,7 +1,12 @@
 #include "filesystem.h"
 
-unsigned int first_free_block(struct llfs_filesystem* fs){
-	return 0;
+int first_free_block(struct llfs_filesystem* fs){
+	int i;
+	for(i=0;i<BLOCKS_ON_DISK;i++){
+		if(is_block_free(fs,i)
+			return i;
+	}
+	return -1; //no free blocks
 }
 
 int is_block_free(struct llfs_filesystem* fs, unsigned int num){
@@ -26,6 +31,18 @@ int flip_block_bit(struct llfs_filesystem* fs, unsigned int num){
 	//shift byte left by num modulo 8 and use and 0x01 to see value of bit
 	//flip bit
 	//shift back and or
+
+	unsigned int n=num/8;
+	unsigned int shiftn = num%8;
+
+	char bit = fs->boot_sector->free_blocks[n];
+
+	bit = (bit >> shiftn) && 0x01;
+
+	bit ^= 1;
+
+	fs->boot_sector->free_blocks[n] ^= (-bit ^ fs->boot_sector->free_blocks[n]) & (1); //flip bit
+
 	return 0;
 }
 
