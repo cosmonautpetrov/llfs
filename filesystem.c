@@ -72,8 +72,41 @@ int add_file_to_filesystem(struct llfs_filesystem* fs, char* path, char* name){
 
 	struct directory_block* dest = path_to_directory_block(fs,path);
 
-	printf("%s\n", dest->name_of_directory);
- 
+	if(!dest) //if dest does not exist 
+		return -1;
+
+	if(dest->total_file_num == 0){ //no files written to director yet
+		dest->file_pointers_in_mem = malloc(sizeof(struct file_block*)); //allocate file_pointers in mem
+	}
+
+	//load file
+
+	FILE* srcf = fopen(name, "r");
+	if(!srcf) //no file
+		return -2;
+
+	//make new file)block
+	struct file_block* f = malloc(sizeof(struct file_block*));
+	//set name
+	f->name = name;
+	//find size
+	fseek(srcf,0,SEEK_END);
+	f->size = ftell(srcf);
+	rewind(srcf);
+	//read it in
+	f->data = malloc(sizeof(char)*f->size);
+	int bytes_read = fread(f->data,1,f->size,srcf);
+
+
+	//add it to directory block
+	if(dest->total_file_num >= 10){ //needs extension
+		//write to extended block
+	}else{
+		//write it to current block
+		dest->total_file_num++;
+		dest->file_pointers_in_mem[dest->total_file_num-1] = f;
+	}
+
 	return 0;
 }
 

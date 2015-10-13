@@ -54,6 +54,7 @@ struct file_block{
 	unsigned int ext_file_block_pointer; //pointer to extended file block
 
 	//used for parsing
+	char* data;
 	struct file_block* next;
 	struct file_block* prev;
 };

@@ -10,7 +10,7 @@ int main(){
 	printf("%i\n",free_floppy(f));
 	*/
 	struct llfs_filesystem* llfs_fs = make_filesystem("tempfs");
-	printf("%i\n",add_file_to_filesystem(llfs_fs, "\\root\\","tempfile"));
+	printf("%i\n",add_file_to_filesystem(llfs_fs, "\\root\\","readme.txt"));
 	free_filesystem(llfs_fs);
 	return 0;
 }
